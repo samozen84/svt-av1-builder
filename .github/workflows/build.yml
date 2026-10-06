@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Clone Official SVT-AV1 Source
-        run: git clone https://github.com svt-av1-source
+        run: git clone "https://github.com" svt-av1-source
 
       - name: Build SVT-AV1
         uses: Akatmks/build-svt-av1@v2
