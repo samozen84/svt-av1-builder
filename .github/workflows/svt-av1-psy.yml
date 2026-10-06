@@ -1,0 +1,42 @@
+name: Build SVT-AV1 PSY Windows
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      # 1. Pull the classic SVT-AV1-PSY branch source repository (Uses 'master' branch)
+      - name: Checkout SVT-AV1-PSY Source
+        uses: actions/checkout@v4
+        with:
+          repository: 'psy-ex/svt-av1-psy'
+          ref: 'master'
+          path: 'svt-av1-source'
+
+      # 2. Force static standalone linkage matching all specified feature layers
+      - name: Build SVT-AV1
+        uses: Akatmks/build-svt-av1@v2
+        with:
+          path: "./svt-av1-source"
+          static: "true"
+          shared: "false"
+          pgo-video: "FoodMarket2"
+          pgo-parameters: "--crf 20 --tune 0"
+          ffms2: "true"
+          cmakeflags: "-DUSE_WEBM_IO=ON -DENABLE_STATIC=ON -DENABLE_SHARED=OFF"
+
+      # 3. Securely pack and grab the binary folders under your specific profile name
+      - name: Upload Windows App Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: SVT-AV1-PSY_static_ffms2_dovi_hdr10plus_webm
+          path: svt-av1-source/BuildAction/
+          if-no-files-found: error
