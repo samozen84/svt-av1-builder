@@ -1,0 +1,37 @@
+name: Build SVT-AV1 Windows
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      # 1. Pull the SVT-AV1-Essential feature-set source repository
+      - name: Checkout SVT-AV1-Essential Source
+        uses: actions/checkout@v4
+        with:
+          repository: 'nekotrix/SVT-AV1-Essential'
+          path: 'svt-av1-source'
+
+      # 2. Build the binaries using the specialized multi-architecture engine execution layer
+      - name: Build SVT-AV1
+        uses: Akatmks/build-svt-av1@v2
+        with:
+          path: "./svt-av1-source"
+          static: "true"
+          shared: "false"
+          pgo-video: "FoodMarket2" # Standard baseline configuration to balance HDR and live action assets
+          pgo-parameters: "--crf 20 --tune 0"
+
+      # 3. Securely pack and grab the finalized multi-profile optimized binary folder
+      - name: Upload Windows App Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: SVT-AV1-Essential-Windows-Binary
+          path: svt-av1-source/BuildAction/
+          if-no-files-found: error
