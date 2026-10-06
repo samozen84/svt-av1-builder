@@ -1,4 +1,4 @@
-name: Build SVT-AV1 HDR Windows
+name: Build SVT-AV1 Windows
 
 on:
   push:
@@ -10,28 +10,33 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    env:
+      # Bypasses node execution blocks to target modernized runner hardware pools
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
-      # 1. Pull the SVT-AV1-HDR fork source code instead of mainline
-      - name: Checkout SVT-AV1-HDR Source
+      # 1. Pull the SVT-AV1-Essential feature-set source repository
+      - name: Checkout SVT-AV1-Essential Source
         uses: actions/checkout@v4
         with:
-          repository: 'juliobbv-p/svt-av1-hdr'
+          repository: 'nekotrix/SVT-AV1-Essential'
           path: 'svt-av1-source'
 
-      # 2. Compile using the live-action benchmark profile (FoodMarket2)
+      # 2. Build the binaries using explicit native flag definitions
       - name: Build SVT-AV1
         uses: Akatmks/build-svt-av1@v2
         with:
           path: "./svt-av1-source"
           static: "true"
           shared: "false"
-          pgo-video: "FoodMarket2" # Tailors the PGO optimization pass for live-action movies
+          pgo-video: "FoodMarket2"
           pgo-parameters: "--crf 20 --tune 0"
+          ffms2: "true" # Safely maps static FFMS2 container reading hooks automatically
+          cmakeflags: "-DUSE_WEBM_IO=ON" # Passes the specific WebM writer IO module safely
 
-      # 3. Securely upload the finalized app executable 
+      # 3. Securely pack and grab the finalized multi-profile optimized binary folder
       - name: Upload Windows App Binary
         uses: actions/upload-artifact@v4
         with:
-          name: SVT-AV1-HDR-Windows-Binary
-          path: svt-av1-source/**/SvtAv1EncApp.exe
+          name: SVT-AV1-Essential-Windows-Binary
+          path: svt-av1-source/BuildAction/
           if-no-files-found: error
