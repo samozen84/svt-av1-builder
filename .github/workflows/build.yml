@@ -11,14 +11,12 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      # 1. Pull the official SVT-AV1 source repository directly into the workspace root
       - name: Checkout Official SVT-AV1 Source
         uses: actions/checkout@v4
         with:
           repository: 'AOMediaCodec/SVT-AV1'
           path: 'svt-av1-source'
 
-      # 2. Build the binaries using the specialized action builder
       - name: Build SVT-AV1
         uses: Akatmks/build-svt-av1@v2
         with:
@@ -28,10 +26,9 @@ jobs:
           pgo-video: "SolLevante"
           pgo-parameters: "--crf 20 --tune 0"
 
-      # 3. Securely grab the finalized .exe artifact
       - name: Upload Windows App Binary
         uses: actions/upload-artifact@v4
         with:
           name: SVT-AV1-Windows-Binary
-          path: svt-av1-source/BuildAction/**/static/SvtAv1EncApp.exe
+          path: svt-av1-source/**/SvtAv1EncApp.exe
           if-no-files-found: error
