@@ -2,32 +2,30 @@ name: Build SVT-AV1 Windows
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch: # This lets you click "Run workflow" manually
+    branches:
+      - main
+      - master
+  workflow_dispatch:
 
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      # 1. Initialize your repository workspace
       - name: Checkout Builder Repo
         uses: actions/checkout@v4
 
-      # 2. Clone the official SVT-AV1 code into a folder named "svt-av1-source"
       - name: Clone Official SVT-AV1 Source
         run: git clone https://github.com svt-av1-source
 
-      # 3. Compile the code using the optimized Akatmks builder script
       - name: Build SVT-AV1
         uses: Akatmks/build-svt-av1@v2
         with:
-          path: "./svt-av1-source" # Points to the cloned source code
+          path: "./svt-av1-source"
           static: "true"
           shared: "false"
           pgo-video: "SolLevante"
           pgo-parameters: "--crf 20 --tune 0"
 
-      # 4. Upload the compiled executable so you can download it
       - name: Upload Windows App Binary
         uses: actions/upload-artifact@v4
         with:
