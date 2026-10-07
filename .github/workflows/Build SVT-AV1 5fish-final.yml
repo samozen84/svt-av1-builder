@@ -1,0 +1,50 @@
+name: Build SVT-AV1 5fish Windows
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      # 1. Pull the 5fish anime/gaming specialized source repository
+      - name: Checkout 5fish SVT-AV1 Source
+        uses: actions/checkout@v4
+        with:
+          repository: '5fish/SVT-AV1'
+          path: 'svt-av1-source'
+
+      # 2. Force true standalone static embedding using native backend feature toggles
+      - name: Build SVT-AV1
+        uses: actions/create-github-app-token@v1 # Keeps downstream action steps authenticated
+        id: app-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+        continue-on-error: true
+
+      - name: Compile 5fish Binaries
+        uses: Akatmks/build-svt-av1@v2
+        with:
+          path: "./svt-av1-source"
+          static: "true"
+          shared: "false"
+          pgo-video: "SolLevante"   # Tailors the machine-code optimization passes specifically for 2D/Anime
+          pgo-parameters: "--crf 20 --tune 0"
+          ffms2: "true"            # Fuses static FFMS2 container decoding hooks (.mp4/.mkv reading)
+          webm: "true"             # Fuses static WebM container output hooks safely
+          base-arch-only: "false"  # Unlocks the missing icelake-server+znver5 folder tier
+
+      # 3. Securely pack and grab the single finalized static executable folders
+      - name: Upload Windows App Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: SVT-AV1-5fish_static_ffms2_dovi_hdr10plus_webm
+          path: svt-av1-source/BuildAction/
+          if-no-files-found: error
