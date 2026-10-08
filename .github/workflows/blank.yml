@@ -1,0 +1,76 @@
+name: Build Av1an Static Windows
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      # Forces Rust to statically link the C runtime (VCRUNTIME140.dll dependency removal)
+      RUSTFLAGS: "-C target-feature=+crt-static"
+
+    steps:
+      # 1. Pull the official Av1an source repository 
+      - name: Checkout Av1an Source
+        uses: actions/checkout@v4
+        with:
+          repository: 'rust-av/Av1an'
+          path: 'av1an-source'
+
+      # 2. Install Python & VapourSynth (Required compilation headers for Av1an's Vpy engine)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install VapourSynth Headers
+        shell: powershell
+        run: |
+          # Downloads a portable/minimized VapourSynth layout just to expose VapourSynth.h to Cargo
+          Invoke-WebRequest -Uri "https://github.com" -OutFile "vs.7z"
+          7z x vs.7z -o"C:\vapoursynth"
+          # Expose VapourSynth library paths to the system environment so Rust can locate them
+          echo "VAPOURSYNTH_LIBRARIES=C:\vapoursynth\sdk\lib64" >> $env:GITHUB_ENV
+          echo "C:\vapoursynth" >> $env:GITHUB_PATH
+
+      # 3. Setup the Rust toolchain targeting Windows MSVC
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      # 4. Cache Rust Build Dependencies to accelerate subsequent runs
+      - name: Cache Cargo Dependencies
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: 'av1an-source -> target'
+
+      # 5. Compile the Av1an binary in production Release mode
+      - name: Build Av1an Binary
+        shell: powershell
+        run: |
+          cd av1an-source
+          cargo build --release --bin av1an
+
+      # 6. Gather the compiled executable and stage it for upload
+      - name: Stage Artifacts
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path .\dist
+          Copy-Item .\av1an-source\target\release\av1an.exe .\dist\
+          # Optional: Verify if the executable is genuinely standalone
+          Copy-Item .\av1an-source\README.md .\dist\
+
+      # 7. Securely pack and grab the single finalized static executable folder
+      - name: Upload Windows App Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: Av1an_Static_Windows_x64
+          path: dist/
+          if-no-files-found: error
